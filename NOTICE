@@ -1,17 +1,11 @@
-EffectCraft
-Copyright (c) 2026 ArtCraft Team and the EffectCraft contributors.
-Licensed under the MIT License or the Apache License, Version 2.0, at your option
-(LICENSE-MIT, LICENSE-APACHE).
+EncoderBridge
+Copyright 2026 Devmaroli
 
-The ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are
-not open source and are not covered by the license above; their terms are in
-docs/brand/LICENSE-brand.txt.
+This project is licensed under the MIT license (LICENSE-MIT) or the Apache
+License 2.0 (LICENSE-APACHE), at your option.
 
-Third-party material
+`job/` is the EncodeCraft queue-job schema, vendored from EncodeCraft
+(`crates/job`) under the same MIT OR Apache-2.0 terms.
 
-This product bundles third-party material under its own licenses, listed below. The per-file
-list (author, source, license) is in ATTRIBUTION.md.
-
-Inter (assets/fonts/Inter-*.ttf) — SIL Open Font License 1.1. See assets/fonts/OFL-Inter.txt.
-Noto Serif (assets/fonts/NotoSerif-Regular.ttf) — SIL Open Font License 1.1. See assets/fonts/OFL-NotoSerif.txt.
-JetBrains Mono (assets/fonts/JetBrainsMono-Regular.ttf) — SIL Open Font License 1.1. See assets/fonts/OFL-JetBrainsMono.txt.
+`screen-suite/screens/` is the Kuwait DOOH screen library used by Screen Suite,
+under the same license.

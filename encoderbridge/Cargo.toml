@@ -1,0 +1,18 @@
+[package]
+name = "effectcraft-encodecraft-plugin"
+description = "EffectCraft command that adds the open composition to the EncodeCraft queue"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "effectcraft_encodecraft_plugin"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+encodecraft-job = { workspace = true }
+serde_json = { workspace = true }
