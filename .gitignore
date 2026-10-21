@@ -1,7 +1,6 @@
-*~
-plan/
-target/
+/target
 /dist
-/log
+/plan
+*~
 .DS_Store
-.claude/worktrees/
+*.exe

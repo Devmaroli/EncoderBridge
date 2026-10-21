@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Test
+        run: cargo test --workspace
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Build the installer from source
+        run: cargo build -p encoderbridge-setup --release
+      - name: Version resource names EncoderBridge from Devmaroli, and the binary is not packed
+        shell: pwsh
+        run: |
+          $path = "target\release\encoderbridge-setup.exe"
+          $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path $path))
+          if ($info.CompanyName -ne "Devmaroli") { throw "CompanyName is '$($info.CompanyName)'" }
+          if ($info.ProductName -ne "EncoderBridge") { throw "ProductName is '$($info.ProductName)'" }
+          if ($info.FileDescription -notmatch "EffectCraft") { throw "FileDescription is '$($info.FileDescription)'" }
+          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $path))
+          $text = [System.Text.Encoding]::ASCII.GetString($bytes)
+          if ($text.Contains("UPX!")) { throw "UPX marker found" }
+          if ($text.Contains("requireAdministrator")) { throw "installer must stay asInvoker" }
+          if (-not $text.Contains("asInvoker")) { throw "asInvoker manifest missing" }
