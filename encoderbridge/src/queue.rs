@@ -989,10 +989,12 @@ mod tests {
 
     #[test]
     fn output_and_format_reject_injection() {
-        assert!(validate_output_path("/tmp/out.mp4").is_ok());
+        let abs_ok = if cfg!(windows) { r"C:\encodecraft-test\out.mp4" } else { "/tmp/out.mp4" };
+        let abs_parent = if cfg!(windows) { r"C:\encodecraft-test\..\etc\out.mp4" } else { "/tmp/../etc/out.mp4" };
+        assert!(validate_output_path(abs_ok).is_ok());
         assert!(validate_output_path("out.mp4").is_err());
-        assert!(validate_output_path("/tmp/../etc/out.mp4").is_err());
-        assert!(validate_output_path("/tmp/out.mp4\r\nX").is_err());
+        assert!(validate_output_path(abs_parent).is_err());
+        assert!(validate_output_path(&format!("{abs_ok}\r\nX")).is_err());
         assert!(validate_format("h264").is_ok());
         assert!(validate_format("h264\r\n").is_err());
         assert!(validate_format("../../x").is_err());
