@@ -53,12 +53,13 @@ jobs:
             if (Test-Path $extra) { Remove-Item -Recurse -Force $extra -ErrorAction SilentlyContinue }
           }
           git config --global core.longpaths true
+          git config --global core.autocrlf false
           git clone --depth 1 --branch v0.11.1 https://github.com/storytold/effectcraft.git effectcraft
           git -C effectcraft apply --check "$pwd\patches\effectcraft-add-to-encodecraft-queue.patch"
           git -C effectcraft apply "$pwd\patches\effectcraft-add-to-encodecraft-queue.patch"
           $cargo = Join-Path $pwd 'effectcraft\Cargo.toml'
           $text = [IO.File]::ReadAllText($cargo)
-          $updated = [regex]::Replace($text, '(?m)^version = "0\.11\.1"$', 'version = "0.11.2"', 1)
+          $updated = [regex]::Replace($text, 'version = "0\.11\.1"', 'version = "0.11.2"', 1)
           if ($updated -eq $text) { throw 'Cargo.toml version was not changed to 0.11.2' }
           [IO.File]::WriteAllText($cargo, $updated)
           $menus = [IO.File]::ReadAllText("$pwd\effectcraft\crates\engine\src\menus.rs") -replace "`r`n", "`n"
