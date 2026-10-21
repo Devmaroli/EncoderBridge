@@ -61,10 +61,13 @@ fn run() -> Result<(), String> {
 fn default_dirs() -> Result<Vec<PathBuf>, String> {
     let local =
         env::var_os("LOCALAPPDATA").ok_or("LOCALAPPDATA is not set. Re-run with --dest.")?;
+    let roaming = env::var_os("APPDATA").ok_or("APPDATA is not set. Re-run with --dest.")?;
     let local = PathBuf::from(local);
+    let roaming = PathBuf::from(roaming);
     let host = local.join("Programs").join("Craft").join("effectcraft");
     Ok(encoderbridge_setup::default_plugin_dirs(
         &local,
+        &roaming,
         host.is_dir(),
     ))
 }

@@ -72,10 +72,23 @@ const SCREEN_SUITE: Plugin = Plugin {
 
 const PLUGINS: &[Plugin] = &[ENCODERBRIDGE, SCREEN_SUITE];
 
-/// `%LOCALAPPDATA%\EffectCraft\plugins`, always, and
-/// `%LOCALAPPDATA%\Programs\Craft\effectcraft\plugins` when that EffectCraft folder exists.
-pub fn default_plugin_dirs(local_app_data: &Path, host_dir_exists: bool) -> Vec<PathBuf> {
-    let mut dirs = vec![local_app_data.join("EffectCraft").join("plugins")];
+/// Folders the installer writes on a normal Windows run.
+///
+/// * `%LOCALAPPDATA%\EffectCraft\plugins`
+/// * `%APPDATA%\EffectCraft\Plug-ins` — the folder EffectCraft v0.11.1 scans at startup
+/// * `%LOCALAPPDATA%\Programs\Craft\effectcraft\plugins` when that install folder already exists
+///
+/// EffectCraft v0.11.1 only loads `.wasm` files from the Plug-ins folder (effect API v1).
+/// It does not read `plugin.json` and cannot add Composition menu commands from disk.
+pub fn default_plugin_dirs(
+    local_app_data: &Path,
+    roaming_app_data: &Path,
+    host_dir_exists: bool,
+) -> Vec<PathBuf> {
+    let mut dirs = vec![
+        local_app_data.join("EffectCraft").join("plugins"),
+        roaming_app_data.join("EffectCraft").join("Plug-ins"),
+    ];
     if host_dir_exists {
         dirs.push(
             local_app_data
@@ -203,11 +216,6 @@ mod tests {
                 .unwrap_err()
                 .contains("absolute")
         );
-        assert!(
-            install_plugins(Path::new("/tmp/ec/../etc"))
-                .unwrap_err()
-                .contains("..")
-        );
         assert!(uninstall_plugins(Path::new("plugins")).is_err());
     }
 
@@ -268,17 +276,35 @@ mod tests {
     }
 
     #[test]
-    fn host_plugins_dir_is_added_only_when_effectcraft_is_installed() {
-        let base = Path::new("/Users/me/AppData/Local");
-        let user_only = default_plugin_dirs(base, false);
-        assert_eq!(user_only, vec![base.join("EffectCraft").join("plugins")]);
-        let both = default_plugin_dirs(base, true);
+    fn stock_plugins_folder_is_roaming_plug_ins() {
+        let local = Path::new("/Users/me/AppData/Local");
+        let roaming = Path::new("/Users/me/AppData/Roaming");
+        let dirs = default_plugin_dirs(local, roaming, false);
         assert_eq!(
-            both[1],
-            base.join("Programs")
+            dirs,
+            vec![
+                local.join("EffectCraft").join("plugins"),
+                roaming.join("EffectCraft").join("Plug-ins"),
+            ]
+        );
+        let with_host = default_plugin_dirs(local, roaming, true);
+        assert_eq!(
+            with_host[2],
+            local
+                .join("Programs")
                 .join("Craft")
                 .join("effectcraft")
                 .join("plugins")
         );
+    }
+
+    #[test]
+    fn parent_dir_is_rejected_on_an_absolute_path() {
+        let sneaky: PathBuf = if cfg!(windows) {
+            PathBuf::from(r"C:\temp\ec\..\etc")
+        } else {
+            PathBuf::from("/tmp/ec/../etc")
+        };
+        assert!(install_plugins(&sneaky).unwrap_err().contains(".."));
     }
 }

@@ -2,8 +2,9 @@ name: Release
 
 on:
   push:
-    tags: ["v*.*.*"]
-  workflow_dispatch:
+    tags:
+      - "plugin-v*"
+      - "v*.*.*"
 
 permissions:
   contents: write
@@ -16,18 +17,27 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build the installer from source
         run: cargo build -p encoderbridge-setup --release
-      - name: Publish EncoderBridge-Setup-x64.exe
+      - name: Publish EncoderBridge-Setup-x64.exe and SHA256SUMS
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           Copy-Item target\release\encoderbridge-setup.exe EncoderBridge-Setup-x64.exe
+          $hash = (Get-FileHash EncoderBridge-Setup-x64.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  EncoderBridge-Setup-x64.exe" | Set-Content -Encoding ascii SHA256SUMS
           $tag = "${{ github.ref_name }}"
-          if ("${{ github.event_name }}" -eq "workflow_dispatch" -and -not $tag.StartsWith("v")) {
-            $tag = "ci-$env:GITHUB_RUN_ID"
-          }
+          $notes = @"
+          EncoderBridge-Setup-x64.exe installs EncoderBridge and Screen Suite files for the current user. It is not EncodeCraft, and it is not code-signed.
+
+          It writes the plugin directories to:
+          - %LOCALAPPDATA%\EffectCraft\plugins
+          - %APPDATA%\EffectCraft\Plug-ins (the folder EffectCraft v0.11.1 scans at startup)
+          - %LOCALAPPDATA%\Programs\Craft\effectcraft\plugins when that folder already exists
+
+          EffectCraft v0.11.1 does not show Add to EncodeCraft Queue. That release only loads .wasm effect plug-ins (API version 1, exports ec_api_version / ec_manifest_ptr / ec_manifest_len / ec_alloc / ec_render) from %APPDATA%\EffectCraft\Plug-ins. plugin.json is not that format, and the Composition menu is compiled into the host. A new EffectCraft release built with patches/effectcraft-add-to-encodecraft-queue.patch (on 9db7f3b, or v0.11.1 where the menu and command files match) is required before the item can appear under Add to Render Queue.
+          "@
           gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --title $tag --notes "EncoderBridge and Screen Suite installer, built from this tag. It is not EncodeCraft. Code signing is not configured; see the repository README."
+            gh release create $tag --prerelease --title $tag --notes $notes
           }
-          gh release upload $tag EncoderBridge-Setup-x64.exe --clobber
+          gh release upload $tag EncoderBridge-Setup-x64.exe SHA256SUMS --clobber
