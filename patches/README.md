@@ -26,4 +26,4 @@ cargo build --release -p effectcraft
 
 Rust 1.95 or newer. The release binary is `target/release/effectcraft` (`effectcraft.exe` on Windows). The stock v0.11.1 installer does not contain this patch, so it will not show the menu item.
 
-`.github/workflows/release.yml` builds that tree as version 0.11.2 on a Windows runner and publishes `EffectCraft-0.11.2-EncoderBridge-Setup-x64.exe` and the portable zip on the `v0.11.2` release.
+`.github/workflows/effectcraft-patched.yml` builds the latest main (`9db7f3b`, version 0.13.0) with this patch and publishes `EffectCraft-0.13.0-encoderbridge-windows-x64.zip`. Tagging `v0.11.2` runs `.github/workflows/release.yml`, which builds the v0.11.1 tree as version 0.11.2.
