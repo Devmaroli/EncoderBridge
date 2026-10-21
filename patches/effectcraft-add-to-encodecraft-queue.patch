@@ -1,5 +1,91 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index ee9c99c..ed1525e 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1072,6 +1072,27 @@ version = "0.5.8"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "7cd812cc2bc1d69d4764bd80df88b4317eaef9e773c75226407d9bc0876b211c"
+ 
++[[package]]
++name = "directories"
++version = "6.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "16f5094c54661b38d03bd7e50df373292118db60b585c08a411c6d840017fe7d"
++dependencies = [
++ "dirs-sys",
++]
++
++[[package]]
++name = "dirs-sys"
++version = "0.5.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
++dependencies = [
++ "libc",
++ "option-ext",
++ "redox_users",
++ "windows-sys 0.61.2",
++]
++
+ [[package]]
+ name = "dispatch"
+ version = "0.2.0"
+@@ -1269,6 +1290,7 @@ dependencies = [
+  "effectcraft-text",
+  "effectcraft-time",
+  "effectcraft-track",
++ "encodecraft-job",
+  "exr",
+  "image",
+  "kurbo",
+@@ -1850,6 +1872,15 @@ dependencies = [
+  "bytemuck",
+ ]
+ 
++[[package]]
++name = "encodecraft-job"
++version = "0.13.0"
++dependencies = [
++ "directories",
++ "serde",
++ "serde_json",
++]
++
+ [[package]]
+ name = "encoding_rs"
+ version = "0.8.42"
+@@ -3844,6 +3875,12 @@ version = "11.1.5"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
+ 
++[[package]]
++name = "option-ext"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
++
+ [[package]]
+ name = "orbclient"
+ version = "0.3.55"
+@@ -4432,6 +4469,16 @@ dependencies = [
+  "bitflags 2.13.2",
+ ]
+ 
++[[package]]
++name = "redox_users"
++version = "0.5.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "60dc65c0ff1a7ae1294b0c67b9f14baf70b644404010370171787bfac1038fc0"
++dependencies = [
++ "libredox",
++ "thiserror 2.0.21",
++]
++
+ [[package]]
+ name = "regex-syntax"
+ version = "0.8.11"
 diff --git a/Cargo.toml b/Cargo.toml
-index 8c6f978e..de563ae2 100644
+index 8c6f978..de563ae 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
 @@ -46,6 +46,7 @@ effectcraft-script = { path = "crates/script" }
@@ -12,7 +98,7 @@ index 8c6f978e..de563ae2 100644
  thiserror = "2"
 diff --git a/crates/encodecraft-job/Cargo.toml b/crates/encodecraft-job/Cargo.toml
 new file mode 100644
-index 00000000..3492b903
+index 0000000..3492b90
 --- /dev/null
 +++ b/crates/encodecraft-job/Cargo.toml
 @@ -0,0 +1,18 @@
@@ -36,7 +122,7 @@ index 00000000..3492b903
 +directories = "6"
 diff --git a/crates/encodecraft-job/README.md b/crates/encodecraft-job/README.md
 new file mode 100644
-index 00000000..8356bcf1
+index 0000000..8356bcf
 --- /dev/null
 +++ b/crates/encodecraft-job/README.md
 @@ -0,0 +1,42 @@
@@ -84,7 +170,7 @@ index 00000000..8356bcf1
 +Inbox is `<that data dir>/inbox/`. EncodeCraft creates `ipc-token` on first launch.
 diff --git a/crates/encodecraft-job/src/lib.rs b/crates/encodecraft-job/src/lib.rs
 new file mode 100644
-index 00000000..8c71516f
+index 0000000..8c71516
 --- /dev/null
 +++ b/crates/encodecraft-job/src/lib.rs
 @@ -0,0 +1,648 @@
@@ -737,7 +823,7 @@ index 00000000..8c71516f
 +    }
 +}
 diff --git a/crates/engine/Cargo.toml b/crates/engine/Cargo.toml
-index 0e26cca5..79c4291e 100644
+index 0e26cca..79c4291 100644
 --- a/crates/engine/Cargo.toml
 +++ b/crates/engine/Cargo.toml
 @@ -32,6 +32,7 @@ effectcraft-svg = { workspace = true }
@@ -750,7 +836,7 @@ index 0e26cca5..79c4291e 100644
  rayon = { workspace = true }
 diff --git a/crates/engine/src/commands/encodecraft.rs b/crates/engine/src/commands/encodecraft.rs
 new file mode 100644
-index 00000000..632dd34c
+index 0000000..632dd34
 --- /dev/null
 +++ b/crates/engine/src/commands/encodecraft.rs
 @@ -0,0 +1,991 @@
@@ -1746,7 +1832,7 @@ index 00000000..632dd34c
 +    }
 +}
 diff --git a/crates/engine/src/commands/mod.rs b/crates/engine/src/commands/mod.rs
-index 23388594..588cff76 100644
+index 2338859..588cff7 100644
 --- a/crates/engine/src/commands/mod.rs
 +++ b/crates/engine/src/commands/mod.rs
 @@ -17,6 +17,7 @@ pub mod content_fill;
@@ -1766,7 +1852,7 @@ index 23388594..588cff76 100644
          v.extend(query::specs());
          v.extend(batch::specs());
 diff --git a/crates/engine/src/menus.rs b/crates/engine/src/menus.rs
-index bc486a0c..a5d8e410 100644
+index bc486a0..a5d8e41 100644
 --- a/crates/engine/src/menus.rs
 +++ b/crates/engine/src/menus.rs
 @@ -550,6 +550,7 @@ File
@@ -1786,7 +1872,7 @@ index bc486a0c..a5d8e410 100644
    ---
    Preview
 diff --git a/crates/ui-egui/src/panels/project.rs b/crates/ui-egui/src/panels/project.rs
-index c4e9894c..57484703 100644
+index c4e9894..5748470 100644
 --- a/crates/ui-egui/src/panels/project.rs
 +++ b/crates/ui-egui/src/panels/project.rs
 @@ -866,6 +866,10 @@ pub fn show(app: &mut EffectcraftApp, ui: &mut egui::Ui, rect: Rect) {
@@ -1829,3 +1915,35 @@ index c4e9894c..57484703 100644
      // Footer.
      let foot = Rect::from_min_max(pos2(rect.min.x, rect.max.y - footer_h), rect.max);
      p.line_segment([foot.left_top(), foot.right_top()], Stroke::new(1.0, t.separator));
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 72daec3..8be54ff 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -1,6 +1,6 @@
+ # Architecture
+ 
+-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** minor (crate table checked against `crates/`: effect count 306, VP9 inter frames) · **Target:** Adobe After Effects 2026
++> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-21 · **Change:** minor (`encodecraft-job` at L0) · **Target:** Adobe After Effects 2026
+ 
+ EffectCraft is a stack of small Rust crates. The engine knows nothing about the user interface;
+ the egui frontend, the command-line tool and the MCP server all sit on top of the same `Session`
+@@ -22,6 +22,7 @@ cpal or muda. Everything in L0 to L4, the egui UI and the web app also build for
+ | L0 | `opusenc` | Opus encoder: RFC 6716 SILK (NB/MB/WB), hybrid (SWB/FB) and CELT (FB) modes chosen by bitrate and application (audio / voice), 48 kHz 20 ms packets, mono/stereo, and the RFC 7845 `OpusHead`, for WebM export audio |
+ | L0 | `hevcenc` | HEVC (H.265) encoder from ITU-T H.265: Main / Main 10 4:2:0, IDR + P slices (quarter-pel motion, merge/AMVP), CABAC, deblocking, bitrate or constant-QP rate control, for MP4 (`hvc1`) export |
+ | L0 | `av1enc` | AV1 encoder from the AV1 bitstream specification: Main profile 8/10-bit 4:2:0, key + inter frames (quarter-pel motion), deblocking, for MP4 (`av01`) and WebM export |
++| L0 | `encodecraft-job` | EncodeCraft queue-job JSON: schema, preset id, and the loopback enqueue body. Serde only on wasm; native builds locate the EncodeCraft data directory |
+ | L1 | `raster` | Premultiplied float images, sampling, affine and projective warps, blurs, compositing (parallel with rayon) |
+ | L1 | `keyframe` | Animated values, keyframes with temporal ease and spatial Bezier, roving, hold, velocity |
+ | L1 | `segment` | Swappable trained models for Roto Brush and face tracking: the `MaskModel` and `FaceModel` interfaces, a registry of open-licensed models (authors, licence, URL, size, SHA-256), PyTorch checkpoint and TensorFlow Lite readers (with an interpreter), SHA-256, MobileSAM (TinyViT + Segment Anything decoder) and MediaPipe Face Landmarker (BlazeFace + Face Mesh V2) on rayon and ndarray's safe GEMM |
+diff --git a/xtask/src/main.rs b/xtask/src/main.rs
+index e79ac63..6e9620f 100644
+--- a/xtask/src/main.rs
++++ b/xtask/src/main.rs
+@@ -32,6 +32,7 @@ const LAYERS: &[(&str, u8)] = &[
+     ("opusenc", 0),
+     ("hevcenc", 0),
+     ("av1enc", 0),
++    ("encodecraft-job", 0),
+     ("raster", 1),
+     ("keyframe", 1),
+     ("path", 1),

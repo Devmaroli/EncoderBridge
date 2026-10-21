@@ -13,7 +13,7 @@ The patch applies with `git apply` on both of these trees (`git apply --check` s
 - the same item under File ▸ Export, in the same position
 - a Project-panel drag: drag a composition and release outside the EffectCraft window. That runs `encodecraft.queue` for the composition you dragged. Right-click the composition and choose the same command.
 
-On `9db7f3b`, `cargo test -p effectcraft-engine --lib encodecraft` passed 17 tests (loopback enqueue, inbox, unsaved project, dirty project). `menus::tests` passed, including the check that every menu line names a registered command. `cargo check -p effectcraft-ui-egui` passed, so the Project-panel drag and the context-menu item typecheck.
+On `9db7f3b`, `cargo test -p effectcraft-engine --lib encodecraft` passed 17 tests (loopback enqueue, inbox, unsaved project, dirty project). `menus::tests` passed, including the check that every menu line names a registered command. `cargo test -p encodecraft-job` passed 16 tests. `cargo xtask layers` passes: `encodecraft-job` is L0. `cargo check -p encodecraft-job --target wasm32-unknown-unknown` passes.
 
 ```bash
 git clone https://github.com/storytold/effectcraft
@@ -24,6 +24,6 @@ cargo test -p effectcraft-engine --lib encodecraft
 cargo build --release -p effectcraft
 ```
 
-Rust 1.95 or newer. The release binary is `target/release/effectcraft` (`effectcraft.exe` on Windows). The stock v0.11.1 installer does not contain this patch, so it will not show the menu item.
+Rust 1.95 or newer. The release binary is `target/release/effectcraft` (`effectcraft.exe` on Windows). A stock EffectCraft installer does not contain this patch, so it will not show the menu item.
 
-`.github/workflows/effectcraft-patched.yml` builds the latest main (`9db7f3b`, version 0.13.0) with this patch and publishes `EffectCraft-0.13.0-encoderbridge-windows-x64.zip`. Tagging `v0.11.2` runs `.github/workflows/release.yml`, which builds the v0.11.1 tree as version 0.11.2.
+EncoderBridge does not build or publish EffectCraft. The menu exists only in an EffectCraft version that includes this patch.
