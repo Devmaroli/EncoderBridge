@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -54,9 +54,15 @@ jobs:
           }
           git config --global core.longpaths true
           git config --global core.autocrlf false
+          # actions/checkout writes the patch with CRLF on Windows. git apply then
+          # misses every hunk against the LF sources in a fresh clone.
+          $patch = Join-Path $pwd 'patches\effectcraft-add-to-encodecraft-queue.patch'
+          $utf8 = New-Object System.Text.UTF8Encoding $false
+          $patchText = [IO.File]::ReadAllText($patch).Replace("`r`n", "`n").Replace("`r", "`n")
+          [IO.File]::WriteAllText($patch, $patchText, $utf8)
           git clone --depth 1 --branch v0.11.1 https://github.com/storytold/effectcraft.git effectcraft
-          git -C effectcraft apply --check "$pwd\patches\effectcraft-add-to-encodecraft-queue.patch"
-          git -C effectcraft apply "$pwd\patches\effectcraft-add-to-encodecraft-queue.patch"
+          git -C effectcraft apply --check --whitespace=nowarn $patch
+          git -C effectcraft apply --whitespace=nowarn $patch
           $cargo = Join-Path $pwd 'effectcraft\Cargo.toml'
           $text = [IO.File]::ReadAllText($cargo)
           $updated = [regex]::Replace($text, 'version = "0\.11\.1"', 'version = "0.11.2"', 1)
