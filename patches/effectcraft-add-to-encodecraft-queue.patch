@@ -1,5 +1,5 @@
 diff --git a/Cargo.toml b/Cargo.toml
-index 8c6f978..de563ae 100644
+index 8c6f978e..de563ae2 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
 @@ -46,6 +46,7 @@ effectcraft-script = { path = "crates/script" }
@@ -12,7 +12,7 @@ index 8c6f978..de563ae 100644
  thiserror = "2"
 diff --git a/crates/encodecraft-job/Cargo.toml b/crates/encodecraft-job/Cargo.toml
 new file mode 100644
-index 0000000..3492b90
+index 00000000..3492b903
 --- /dev/null
 +++ b/crates/encodecraft-job/Cargo.toml
 @@ -0,0 +1,18 @@
@@ -36,7 +36,7 @@ index 0000000..3492b90
 +directories = "6"
 diff --git a/crates/encodecraft-job/README.md b/crates/encodecraft-job/README.md
 new file mode 100644
-index 0000000..8356bcf
+index 00000000..8356bcf1
 --- /dev/null
 +++ b/crates/encodecraft-job/README.md
 @@ -0,0 +1,42 @@
@@ -84,7 +84,7 @@ index 0000000..8356bcf
 +Inbox is `<that data dir>/inbox/`. EncodeCraft creates `ipc-token` on first launch.
 diff --git a/crates/encodecraft-job/src/lib.rs b/crates/encodecraft-job/src/lib.rs
 new file mode 100644
-index 0000000..8c71516
+index 00000000..8c71516f
 --- /dev/null
 +++ b/crates/encodecraft-job/src/lib.rs
 @@ -0,0 +1,648 @@
@@ -737,7 +737,7 @@ index 0000000..8c71516
 +    }
 +}
 diff --git a/crates/engine/Cargo.toml b/crates/engine/Cargo.toml
-index 0e26cca..79c4291 100644
+index 0e26cca5..79c4291e 100644
 --- a/crates/engine/Cargo.toml
 +++ b/crates/engine/Cargo.toml
 @@ -32,6 +32,7 @@ effectcraft-svg = { workspace = true }
@@ -750,10 +750,10 @@ index 0e26cca..79c4291 100644
  rayon = { workspace = true }
 diff --git a/crates/engine/src/commands/encodecraft.rs b/crates/engine/src/commands/encodecraft.rs
 new file mode 100644
-index 0000000..6b11cff
+index 00000000..632dd34c
 --- /dev/null
 +++ b/crates/engine/src/commands/encodecraft.rs
-@@ -0,0 +1,989 @@
+@@ -0,0 +1,991 @@
 +//! Menu placement is in `menus.rs`, directly under Add to Render Queue, in
 +//! Composition and in File ▸ Export. The shortcut is inherited from this spec
 +//! (`Cmd+Alt+M`, Ctrl+Alt+M on Windows).
@@ -1696,10 +1696,12 @@ index 0000000..6b11cff
 +
 +    #[test]
 +    fn output_and_format_reject_injection() {
-+        assert!(validate_output_path("/tmp/out.mp4").is_ok());
++        let abs_ok = if cfg!(windows) { r"C:\encodecraft-test\out.mp4" } else { "/tmp/out.mp4" };
++        let abs_parent = if cfg!(windows) { r"C:\encodecraft-test\..\etc\out.mp4" } else { "/tmp/../etc/out.mp4" };
++        assert!(validate_output_path(abs_ok).is_ok());
 +        assert!(validate_output_path("out.mp4").is_err());
-+        assert!(validate_output_path("/tmp/../etc/out.mp4").is_err());
-+        assert!(validate_output_path("/tmp/out.mp4\r\nX").is_err());
++        assert!(validate_output_path(abs_parent).is_err());
++        assert!(validate_output_path(&format!("{abs_ok}\r\nX")).is_err());
 +        assert!(validate_format("h264").is_ok());
 +        assert!(validate_format("h264\r\n").is_err());
 +        assert!(validate_format("../../x").is_err());
@@ -1744,7 +1746,7 @@ index 0000000..6b11cff
 +    }
 +}
 diff --git a/crates/engine/src/commands/mod.rs b/crates/engine/src/commands/mod.rs
-index 2338859..588cff7 100644
+index 23388594..588cff76 100644
 --- a/crates/engine/src/commands/mod.rs
 +++ b/crates/engine/src/commands/mod.rs
 @@ -17,6 +17,7 @@ pub mod content_fill;
@@ -1764,7 +1766,7 @@ index 2338859..588cff7 100644
          v.extend(query::specs());
          v.extend(batch::specs());
 diff --git a/crates/engine/src/menus.rs b/crates/engine/src/menus.rs
-index bc486a0..a5d8e41 100644
+index bc486a0c..a5d8e410 100644
 --- a/crates/engine/src/menus.rs
 +++ b/crates/engine/src/menus.rs
 @@ -550,6 +550,7 @@ File
@@ -1784,7 +1786,7 @@ index bc486a0..a5d8e41 100644
    ---
    Preview
 diff --git a/crates/ui-egui/src/panels/project.rs b/crates/ui-egui/src/panels/project.rs
-index c4e9894..5748470 100644
+index c4e9894c..57484703 100644
 --- a/crates/ui-egui/src/panels/project.rs
 +++ b/crates/ui-egui/src/panels/project.rs
 @@ -866,6 +866,10 @@ pub fn show(app: &mut EffectcraftApp, ui: &mut egui::Ui, rect: Rect) {

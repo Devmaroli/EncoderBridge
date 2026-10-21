@@ -1,6 +1,6 @@
 # Windows installer
 
-`EncoderBridge-Setup-x64.exe` is not stored in git. GitHub Actions builds it from `installer/` and attaches it to a release when a `plugin-v*` or `v*.*.*` tag is pushed.
+`EncoderBridge-Setup-x64.exe` is not stored in git. GitHub Actions builds it from `installer/` and attaches it to the `v0.11.2` release.
 
 The executable is a normal Rust program. The plugin files are compiled in with `include_bytes!`. It is not an NSIS or UPX self-extractor. Its version resource says product **EncoderBridge**, company **Devmaroli**. The manifest requests `asInvoker` (the current user, no UAC elevation).
 
