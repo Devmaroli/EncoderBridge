@@ -35,7 +35,13 @@ jobs:
           dotnet tool install --global wix --version 5.0.2
           $tools = Join-Path $env:USERPROFILE '.dotnet\tools'
           $env:Path = "$tools;$env:Path"
-          wix extension add -g WixToolset.Bal.wixext/5.0.2
+          # Bal.wixext is a rename alias. Its DLL is WixToolset.BootstrapperApplications.wixext.dll,
+          # so `wix build -ext WixToolset.Bal.wixext` looks for a file that was never installed (WIX0144).
+          wix extension add -g WixToolset.BootstrapperApplications.wixext/5.0.2
+          wix extension list -g
+          $dll = Get-ChildItem -Path (Join-Path $env:USERPROFILE '.wix\extensions') -Recurse -Filter 'WixToolset.BootstrapperApplications.wixext.dll' | Select-Object -First 1
+          if (-not $dll) { throw 'WixToolset.BootstrapperApplications.wixext.dll was not installed' }
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'wix-bal-ext.txt') -Value $dll.FullName
           Add-Content -Path $env:GITHUB_PATH -Value $tools
 
       - name: Patch EffectCraft v0.11.1 as v0.11.2
@@ -121,7 +127,9 @@ jobs:
           if (-not (Test-Path $zip)) { throw "missing $zip" }
           $bundle = Join-Path $env:GITHUB_WORKSPACE '.github\windows\effectcraft-bundle.wxs'
           $setup = Join-Path $env:GITHUB_WORKSPACE 'release-assets\EffectCraft-0.11.2-EncoderBridge-Setup-x64.exe'
-          wix build $bundle -ext WixToolset.Bal.wixext -arch x64 -d "MsiPath=$msi" -o $setup
+          $extDll = (Get-Content (Join-Path $env:RUNNER_TEMP 'wix-bal-ext.txt') -Raw).Trim()
+          if (-not (Test-Path $extDll)) { throw "missing WiX extension $extDll" }
+          wix build $bundle -ext $extDll -arch x64 -d "MsiPath=$msi" -o $setup
           if ($LASTEXITCODE -ne 0) { throw "wix bundle failed: $LASTEXITCODE" }
           Copy-Item $zip (Join-Path $env:GITHUB_WORKSPACE 'release-assets\EffectCraft-0.11.2-EncoderBridge-windows-x64-portable.zip')
 

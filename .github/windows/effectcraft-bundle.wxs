@@ -3,7 +3,7 @@
   Setup exe for the patched EffectCraft build. WiX Burn wraps the upstream per-machine MSI
   (packaging/windows/effectcraft.wxs in storytold/effectcraft). Built by release.yml:
 
-    wix build effectcraft-bundle.wxs -ext WixToolset.Bal.wixext -arch x64 -d MsiPath=... -o Setup.exe
+    wix build effectcraft-bundle.wxs -ext WixToolset.BootstrapperApplications.wixext -arch x64 -d MsiPath=... -o Setup.exe
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
   <Bundle
