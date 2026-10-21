@@ -596,19 +596,31 @@ mod tests {
         let _ = std::fs::remove_dir_all(&xdg_root);
     }
 
+    /// Unix absolute paths are not absolute on Windows, so `is_plausible_data_dir` would drop them.
+    fn abs_dir(unix: &str) -> String {
+        if cfg!(windows) {
+            format!(r"C:\encodecraft-test\{}", unix.trim_start_matches('/').replace('/', "\\"))
+        } else {
+            unix.to_string()
+        }
+    }
+
     #[test]
     fn data_dirs_home_env_is_first() {
-        let dirs = data_dirs_from(Some("/tmp/ec-home-test"), Some("/tmp/xdg-test"), Some("/home/user"), None);
-        assert_eq!(dirs[0], PathBuf::from("/tmp/ec-home-test"));
+        let home = abs_dir("/tmp/ec-home-test");
+        let xdg = abs_dir("/tmp/xdg-test");
+        let user = abs_dir("/home/user");
+        let dirs = data_dirs_from(Some(&home), Some(&xdg), Some(&user), None);
+        assert_eq!(dirs[0], PathBuf::from(&home));
         assert!(dirs.iter().any(|d| d.ends_with("encodecraft")));
     }
 
     #[test]
     fn windows_appdata_uses_projectdirs_data_suffix() {
-        let appdata = "/tmp/Roaming";
-        let dirs = data_dirs_from(None, None, None, Some(appdata));
-        let data = windows_project_dirs_data(appdata);
-        let legacy = windows_project_dirs_legacy(appdata);
+        let appdata = abs_dir("/tmp/Roaming");
+        let dirs = data_dirs_from(None, None, None, Some(&appdata));
+        let data = windows_project_dirs_data(&appdata);
+        let legacy = windows_project_dirs_legacy(&appdata);
         assert_eq!(dirs.first(), Some(&data), "ProjectDirs data_dir must come before the legacy folder: {dirs:?}");
         assert!(dirs.iter().any(|d| d == &legacy), "legacy %APPDATA%\\EncodeCraft\\EncodeCraft fallback missing: {dirs:?}");
         assert!(data.ends_with("EncodeCraft/EncodeCraft/data") || data.ends_with(r"EncodeCraft\EncodeCraft\data"));
@@ -616,20 +628,30 @@ mod tests {
 
     #[test]
     fn home_env_beats_windows_appdata() {
-        let dirs = data_dirs_from(Some("/tmp/ec-home-test"), None, None, Some("/tmp/Roaming"));
-        assert_eq!(dirs[0], PathBuf::from("/tmp/ec-home-test"));
-        assert!(dirs.iter().any(|d| d == &windows_project_dirs_data("/tmp/Roaming")));
+        let home = abs_dir("/tmp/ec-home-test");
+        let appdata = abs_dir("/tmp/Roaming");
+        let dirs = data_dirs_from(Some(&home), None, None, Some(&appdata));
+        assert_eq!(dirs[0], PathBuf::from(&home));
+        assert!(dirs.iter().any(|d| d == &windows_project_dirs_data(&appdata)));
     }
 
     #[test]
     fn macos_and_linux_match_projectdirs() {
-        let mac = macos_project_dirs_data("/Users/dev");
-        assert_eq!(mac, PathBuf::from("/Users/dev/Library/Application Support/dev.EncodeCraft.EncodeCraft"));
-        let linux = linux_project_dirs_data("/home/dev/.local/share");
-        assert_eq!(linux, PathBuf::from("/home/dev/.local/share/encodecraft"));
-        let dirs = data_dirs_from(None, Some("/tmp/xdg"), Some("/Users/dev"), None);
+        let user = abs_dir("/Users/dev");
+        let share = abs_dir("/home/dev/.local/share");
+        let xdg = abs_dir("/tmp/xdg");
+        let mac = macos_project_dirs_data(&user);
+        let linux = linux_project_dirs_data(&share);
+        assert!(mac.starts_with(Path::new(&user)));
+        assert!(linux.ends_with("encodecraft"));
+        #[cfg(not(windows))]
+        {
+            assert_eq!(mac, PathBuf::from("/Users/dev/Library/Application Support/dev.EncodeCraft.EncodeCraft"));
+            assert_eq!(linux, PathBuf::from("/home/dev/.local/share/encodecraft"));
+        }
+        let dirs = data_dirs_from(None, Some(&xdg), Some(&user), None);
         assert!(dirs.iter().any(|d| d == &mac));
-        assert!(dirs.iter().any(|d| d == &PathBuf::from("/tmp/xdg/encodecraft")));
+        assert!(dirs.iter().any(|d| d == &linux_project_dirs_data(&xdg)));
     }
 
     #[cfg(not(target_arch = "wasm32"))]
