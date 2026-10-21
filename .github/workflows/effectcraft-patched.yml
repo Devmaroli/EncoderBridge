@@ -1,0 +1,117 @@
+name: Patched EffectCraft
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - patches/effectcraft-add-to-encodecraft-queue.patch
+      - .github/workflows/effectcraft-patched.yml
+
+# Latest storytold/effectcraft main as of 2026-10-21 (workspace version 0.13.0).
+# Newer than the v0.11.1 release. The menu command is compiled into this executable.
+env:
+  EFFECTCRAFT_SHA: 9db7f3b21700fd821f215782ed1c82afe077880f
+  RELEASE_TAG: effectcraft-0.13.0-encoderbridge
+
+permissions:
+  contents: write
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout EncoderBridge
+        uses: actions/checkout@v4
+
+      - name: Checkout EffectCraft
+        uses: actions/checkout@v4
+        with:
+          repository: storytold/effectcraft
+          ref: 9db7f3b21700fd821f215782ed1c82afe077880f
+          path: effectcraft
+
+      - name: Apply the Composition menu and drag patch
+        working-directory: effectcraft
+        run: git apply --check "${{ github.workspace }}/patches/effectcraft-add-to-encodecraft-queue.patch" && git apply "${{ github.workspace }}/patches/effectcraft-add-to-encodecraft-queue.patch"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Build effectcraft.exe and effectcraft-cli.exe
+        working-directory: effectcraft
+        shell: pwsh
+        run: |
+          $env:EFFECTCRAFT_REQUIRE_WINRES = "1"
+          $env:EFFECTCRAFT_BUILD_SHA = "${{ env.EFFECTCRAFT_SHA }}"
+          # Applies only when --target is set, so build scripts stay on the normal CRT.
+          $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS = "-C target-feature=+crt-static"
+          cargo build --release -p effectcraft -p effectcraft-cli --target x86_64-pc-windows-msvc
+
+      - name: Pack the portable app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $bin = "effectcraft\target\x86_64-pc-windows-msvc\release"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item "$bin\effectcraft.exe" dist\
+          Copy-Item "$bin\effectcraft-cli.exe" dist\
+          Copy-Item effectcraft\packaging\windows\portable.txt dist\
+          function Get-PeSubsystem([string] $Path) {
+            $bytes = [System.IO.File]::ReadAllBytes($Path)
+            $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+            return [BitConverter]::ToUInt16($bytes, $pe + 0x5C)
+          }
+          $app = Get-PeSubsystem (Resolve-Path "dist\effectcraft.exe")
+          $cli = Get-PeSubsystem (Resolve-Path "dist\effectcraft-cli.exe")
+          if ($app -ne 2) { throw "effectcraft.exe subsystem is $app, expected 2 (GUI)" }
+          if ($cli -ne 3) { throw "effectcraft-cli.exe subsystem is $cli, expected 3 (console)" }
+          $readme = @(
+            "EffectCraft 0.13.0 with EncoderBridge compiled in."
+            "Source: storytold/effectcraft $($env:EFFECTCRAFT_SHA)"
+            "This is not the v0.11.1 release. It is the latest main, plus Add to EncodeCraft Queue."
+            ""
+            "Run effectcraft.exe in this folder. portable.txt keeps settings beside the exe."
+            "This copy does not replace an installed v0.11.1."
+            ""
+            "Click: Composition, the item directly under Add to Render Queue, named Add to EncodeCraft Queue."
+            "Same item: File, Export. Shortcut: Ctrl+Alt+M."
+            "Drag a composition in the Project panel and release outside the window to queue that composition."
+            "The project must be saved."
+            ""
+            "EncodeCraft must be installed separately. This build does not include it."
+          ) -join "`n"
+          Set-Content -Encoding utf8 dist\README.txt -Value $readme
+          Compress-Archive -Path dist\* -DestinationPath EffectCraft-0.13.0-encoderbridge-windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EffectCraft-0.13.0-encoderbridge-windows-x64
+          path: EffectCraft-0.13.0-encoderbridge-windows-x64.zip
+          if-no-files-found: error
+
+      - name: Publish the zip on the effectcraft-0.13.0-encoderbridge release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $tag = "${{ env.RELEASE_TAG }}"
+          $notes = @(
+            "Portable EffectCraft 0.13.0 (storytold/effectcraft 9db7f3b) with Add to EncodeCraft Queue compiled in."
+            ""
+            "This is newer than the v0.11.1 installer. Unzip and run effectcraft.exe. portable.txt keeps this copy's settings beside the exe, so it does not replace a v0.11.1 install."
+            ""
+            "Composition, the item directly under Add to Render Queue: Add to EncodeCraft Queue. The same item is under File, Export. Shortcut: Ctrl+Alt+M."
+            "Drag a composition in the Project panel and release outside the window to queue that composition. The project must be saved."
+            ""
+            "EncodeCraft is a separate install. This build is not code-signed."
+          ) -join "`n"
+          Set-Content -Encoding utf8 release-notes.txt -Value $notes
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release delete $tag --yes --cleanup-tag
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release create $tag EffectCraft-0.13.0-encoderbridge-windows-x64.zip --target $env:GITHUB_SHA --prerelease --title "EffectCraft 0.13.0 with Add to EncodeCraft Queue" --notes-file release-notes.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

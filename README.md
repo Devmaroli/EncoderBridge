@@ -4,13 +4,21 @@ EncoderBridge adds **Add to EncodeCraft Queue** to [EffectCraft](https://github.
 
 v0.11.1 has no Composition entry for EncodeCraft. Its plugin folder only loads `.wasm` effect modules (API version 1), and those show up in the Effect menu. Dropping `plugin.json` into `%APPDATA%\EffectCraft\Plug-ins` does not create **Add to EncodeCraft Queue**.
 
-The menu item and the drag are in [`patches/effectcraft-add-to-encodecraft-queue.patch`](patches/effectcraft-add-to-encodecraft-queue.patch). Apply it to EffectCraft `v0.11.1` or to `main` at `9db7f3b`, then rebuild EffectCraft. See [patches/README.md](patches/README.md). No EffectCraft release contains the patch today.
+The menu item and the drag are in [`patches/effectcraft-add-to-encodecraft-queue.patch`](patches/effectcraft-add-to-encodecraft-queue.patch). storytold/effectcraft has not shipped that change. The Windows executable that already contains it is below.
 
 Screen Suite and the Kuwait DOOH screen library (`screen-suite/screens`, crate `effectcraft-screens`) live in this repo too.
 
+## Executable
+
+The menu item is compiled into EffectCraft. The file you run is a portable build of the latest EffectCraft main (0.13.0, commit `9db7f3b`, newer than the v0.11.1 release) with this patch already applied.
+
+Download [EffectCraft-0.13.0-encoderbridge-windows-x64.zip](https://github.com/Devmaroli/EncoderBridge/releases/download/effectcraft-0.13.0-encoderbridge/EffectCraft-0.13.0-encoderbridge-windows-x64.zip) from the [effectcraft-0.13.0-encoderbridge](https://github.com/Devmaroli/EncoderBridge/releases/tag/effectcraft-0.13.0-encoderbridge) release. `.github/workflows/effectcraft-patched.yml` builds that zip on Windows from `9db7f3b` plus `patches/effectcraft-add-to-encodecraft-queue.patch` and attaches it there. The same zip is also an Actions artifact of the Patched EffectCraft workflow.
+
+Unzip it and run `effectcraft.exe`. `portable.txt` is next to the exe, so this copy keeps its own settings and does not replace a v0.11.1 install.
+
 ## Where to click
 
-After rebuilding EffectCraft with the patch:
+In that executable:
 
 1. Open a saved composition.
 2. **Composition ▸ Add to EncodeCraft Queue** — the item directly under **Add to Render Queue**.
@@ -50,7 +58,7 @@ The installer writes the same files to both of these folders:
 - `%APPDATA%\EffectCraft\Plug-ins\org.effectcraft.encodecraft\plugin.json` (the folder v0.11.1 scans; it ignores this non-`.wasm` tree)
 - `%LOCALAPPDATA%\EffectCraft\plugins\org.effectcraft.screen-suite\` and the same path under Plug-ins (the screen library JSON)
 
-**What has to ship in EffectCraft before the menu item exists:** a new EffectCraft release built with `patches/effectcraft-add-to-encodecraft-queue.patch` applied on top of `9db7f3b` (or any commit with the same menu and command registry, including the v0.11.1 tree where those files match). The patch adds the two menu lines directly under `renderQueue.add`, registers `encodecraft.queue`, and sends a composition dragged out of the Project panel. No EffectCraft release contains that patch today. v0.11.1 will not show the item no matter where the installer copies files.
+**What has to ship in EffectCraft before the menu item exists:** a build with `patches/effectcraft-add-to-encodecraft-queue.patch` applied on top of `9db7f3b` (or any commit with the same menu and command registry, including the v0.11.1 tree where those files match). The patch adds the two menu lines directly under `renderQueue.add`, registers `encodecraft.queue`, and sends a composition dragged out of the Project panel. The zip in the Executable section is that build. The storytold v0.11.1 installer will not show the item no matter where plugin files are copied.
 
 ## Windows installer
 
