@@ -4,5 +4,8 @@ fn main() {
     // Compiled only on Windows, where the build-dependency is present.
     // Linux CI still builds this crate; it just does not embed a resource.
     #[cfg(target_os = "windows")]
-    embed_resource::compile("windows/encoderbridge-setup.rc", embed_resource::NONE);
+    {
+        // embed-resource 3 returns a must-use result. Drop still reports a failed compile.
+        let _ = embed_resource::compile("windows/encoderbridge-setup.rc", embed_resource::NONE);
+    }
 }
